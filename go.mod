@@ -1,0 +1,3 @@
+module LFS-TA-PROJECT-GOLANG
+
+go 1.21.1
