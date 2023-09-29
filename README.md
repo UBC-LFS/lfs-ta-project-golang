@@ -5,3 +5,9 @@
 ```
 
 ```
+
+2. Create a .env file
+```
+ClientID = 
+ClientSecret = 
+```
