@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"io"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 // When run without any options
@@ -14,16 +17,39 @@ import (
 // 		Supply a list of unique instructor names and email in csv format
 
 func pullTerms() {
-	URL := "https://sat.api.ubc.ca/academic-exp/v2"
-	resp, err := http.Get(URL)
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalln(err)
+		// Handle error, e.g., log it or exit the program
+		fmt.Println("Error loading .env file")
 	}
 
-	fmt.Println(resp)
+	ClientID := os.Getenv("ClientID")
+	ClientSecret := os.Getenv("ClientSecret")
+
+	client := &http.Client{}
+	URL := "https://stg.api.ubc.ca/academic/v4/academic-periods"
+	req, err := http.NewRequest("GET", URL, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	req.Header.Add("x-client-id", ClientID)
+	req.Header.Add("x-client-secret", ClientSecret)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(string(body))
 }
 
 func main() {
-	fmt.Println("Hello, ")
 	pullTerms()
 }
