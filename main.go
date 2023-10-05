@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,12 +43,29 @@ func pullTerms() {
 		fmt.Println(err)
 	}
 
+	// body = result from api get request
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	fmt.Println(string(body))
+	// Converts data to an interface
+	var academicTermData map[string]interface{}
+	err = json.Unmarshal([]byte(string(body)), &academicTermData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	pageItems := academicTermData["pageItems"].([]interface{})
+
+	terms := make([]string, 0)
+	// fmt.Println(result["pageItems"])
+	for i := 0; i < len(pageItems); i++ {
+		item := pageItems[i].(map[string]interface{})
+		termName := item["academicPeriod"].(map[string]interface{})["academicPeriodName"]
+		terms = append(terms, termName.(string))
+	}
+	fmt.Println(terms)
 }
 
 func main() {
