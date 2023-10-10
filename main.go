@@ -68,6 +68,56 @@ func pullTerms() {
 	fmt.Println(terms)
 }
 
+func pullCourses(term string) {
+	err := godotenv.Load(".env")
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
+
+	ClientID := os.Getenv("expClientID")
+	ClientSecret := os.Getenv("expClientSecret")
+
+	client := &http.Client{}
+	URL := "https://sat.api.ubc.ca/academic-exp/v2/course-registration-details"
+
+	// filter out for courses in a specific term
+
+	req, err := http.NewRequest("GET", URL, nil)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	req.Header.Add("x-client-id", ClientID)
+	req.Header.Add("x-client-secret", ClientSecret)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// body = result from api get request
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Converts data to an interface
+	var academicRecordData map[string]interface{}
+	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(academicRecordData)
+}
+
 func main() {
+	// make this return the terms
 	pullTerms()
+
+	// pull instructors
+	selectedTerm := "Aahshshsh"
+	pullCourses(selectedTerm)
 }
