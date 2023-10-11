@@ -110,7 +110,16 @@ func pullCourses(term string) {
 		return
 	}
 
-	fmt.Println(academicRecordData)
+	courseItems := academicRecordData["pageItems"].([]interface{})
+
+	print("\n")
+	for i := 0; i < len(courseItems); i++ {
+		item := courseItems[i].(map[string]interface{})
+		courseSectionDetails := item["courseSection"].(map[string]interface{})
+		termDetails := courseSectionDetails["academicPeriod"].(map[string]interface{})
+		term := termDetails["academicPeriodName"]
+		fmt.Println(term)
+	}
 }
 
 func main() {
