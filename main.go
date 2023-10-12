@@ -68,7 +68,7 @@ func pullTerms() {
 	fmt.Println(terms)
 }
 
-func pullCourses(term string) {
+func getDeptCourses(dept string, selectedTerm string, year string) {
 	err := godotenv.Load(".env")
 	if err != nil {
 		fmt.Println("Error loading .env file")
@@ -78,7 +78,7 @@ func pullCourses(term string) {
 	ClientSecret := os.Getenv("expClientSecret")
 
 	client := &http.Client{}
-	URL := "https://sat.api.ubc.ca/academic-exp/v2/course-registration-details"
+	URL := "https://sat.api.ubc.ca/academic-exp/v2/course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
 
 	// filter out for courses in a specific term
 
@@ -112,13 +112,24 @@ func pullCourses(term string) {
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
 
-	print("\n")
 	for i := 0; i < len(courseItems); i++ {
 		item := courseItems[i].(map[string]interface{})
-		courseSectionDetails := item["courseSection"].(map[string]interface{})
-		termDetails := courseSectionDetails["academicPeriod"].(map[string]interface{})
+		// courseSectionDetails := item["courseSection"].(map[string]interface{})
+		termDetails := item["academicPeriod"].(map[string]interface{})
 		term := termDetails["academicPeriodName"]
-		fmt.Println(term)
+
+		if term == selectedTerm {
+			fmt.Println(dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string))
+		}
+	}
+}
+
+func pullCourses(selectedTerm string) {
+	LFSDepts := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
+	// for loop of getDeptCourses
+	year := string(selectedTerm[0:4])
+	for i := 0; i < len(LFSDepts); i++ {
+		getDeptCourses(LFSDepts[i], selectedTerm, year)
 	}
 }
 
@@ -127,6 +138,6 @@ func main() {
 	pullTerms()
 
 	// pull instructors
-	selectedTerm := "Aahshshsh"
+	selectedTerm := "2022-23 Winter Term 1 (UBC-V)"
 	pullCourses(selectedTerm)
 }
