@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"encoding/csv"
+
 	"github.com/joho/godotenv"
 )
 
@@ -131,9 +133,9 @@ func pullCourseSectionData(reference string) {
 				workerUndefined := true
 				firstName := ""
 				lastName := ""
+				emailType := ""
+				emailAddress := ""
 
-				// fmt.Println(worker)
-				// fmt.Println(email)
 				for k := 0; k < len(worker); k++ {
 					if worker[k].(map[string]interface{})["nameType"] == "Preferred Name" {
 						firstName = worker[k].(map[string]interface{})["givenName"].(string)
@@ -148,16 +150,22 @@ func pullCourseSectionData(reference string) {
 					lastName = worker[0].(map[string]interface{})["familyName"].(string)
 				}
 
+				for k := 0; k < len(email); k++ {
+					emailType = email[k].(map[string]interface{})["channelType"].(map[string]interface{})["description"].(string)
+					emailAddress = email[k].(map[string]interface{})["emailAddress"].(string)
+				}
+
 				fmt.Println(firstName)
 				fmt.Println(lastName)
-				fmt.Println(email)
+				fmt.Println(emailType)
+				fmt.Println(emailAddress)
 			}
 
 		}
 	}
 }
 
-func getDeptCourses(dept string, selectedTerm string, year string) {
+func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	err := godotenv.Load(".env")
 	if err != nil {
 		fmt.Println("Error loading .env file")
@@ -194,10 +202,12 @@ func getDeptCourses(dept string, selectedTerm string, year string) {
 	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil
 	}
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
+
+	var deptCourses = make([]course, 0)
 
 	for i := 0; i < len(courseItems); i++ {
 		item := courseItems[i].(map[string]interface{})
@@ -209,21 +219,32 @@ func getDeptCourses(dept string, selectedTerm string, year string) {
 			fmt.Println(dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string))
 			pullCourseSectionData(item["courseSectionId"].(string))
 
-			// courseInfo := course{
-			// 	courseName: dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
-			// 	// instructors: ,
-			// }
+			courseInfo := course{
+				courseName: dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
+				// instructors: ,
+			}
+
+			deptCourses = append(deptCourses, courseInfo)
 		}
 	}
+
+	return deptCourses
 }
 
-func pullCourses(selectedTerm string) {
+func pullCourses(selectedTerm string) []course {
+	var allCourses = make([]course, 0)
 	LFSDepts := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
 	// for loop of getDeptCourses
 	year := string(selectedTerm[0:4])
 	for i := 0; i < len(LFSDepts); i++ {
-		getDeptCourses(LFSDepts[i], selectedTerm, year)
+		deptCourses := getDeptCourses(LFSDepts[i], selectedTerm, year)
+
+		for k := 0; k < len(deptCourses); k++ {
+			allCourses = append(allCourses, deptCourses[k])
+		}
 	}
+
+	return allCourses
 }
 
 func main() {
@@ -234,7 +255,37 @@ func main() {
 
 	// pull course data
 	// selectedTerm := "2024-25 Winter Term 1 (UBC-V)" // Testing
-	pullCourses(selectedTerm)
+	allCoursesData := pullCourses(selectedTerm)
 
+	fmt.Println(allCoursesData)
 	// run function to convert course data to .csv
+
+	csvFile, err := os.Create("courses.csv")
+
+	if err != nil {
+		fmt.Println("Failed creating file: %s", err)
+	}
+
+	csvwriter := csv.NewWriter(csvFile)
+
+	testData := [][]string{
+		{"Course Code", "...", "..."},
+		{"...", "...", "..."},
+		{"...", "...", "..."},
+		{"...", "...", "..."},
+		{"...", "...", "...", "...", "..."},
+	}
+
+	// for _, dataRow := range allCoursesData {
+	// 	_ = csvwriter.Write(dataRow)
+	// 	// fmt.Println(dataRow)
+	// }
+
+	for _, dataRow := range testData {
+		_ = csvwriter.Write(dataRow)
+		// fmt.Println(dataRow)
+	}
+
+	csvwriter.Flush()
+	csvFile.Close()
 }
