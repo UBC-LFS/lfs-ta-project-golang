@@ -20,8 +20,18 @@ import (
 // 		Supply a list of unique instructor names and email in csv format
 
 type course struct {
-	courseName  string
-	instructors []string
+	courseName               string
+	instructorFirstName      string
+	instructorLastName       string
+	instructorWorkEmail      string
+	instructorSecondaryEmail string
+}
+
+type instructor struct {
+	instructorFirstName      string
+	instructorLastName       string
+	instructorWorkEmail      string
+	instructorSecondaryEmail string
 }
 
 func pullTerms() []string {
@@ -76,7 +86,10 @@ func pullTerms() []string {
 	return terms
 }
 
-func pullCourseSectionData(reference string) {
+func pullCourseSectionData(reference string) []instructor {
+
+	instructorArray := make([]instructor, 0)
+
 	err := godotenv.Load(".env")
 	if err != nil {
 		fmt.Println("Error loading .env file")
@@ -114,7 +127,7 @@ func pullCourseSectionData(reference string) {
 	err = json.Unmarshal([]byte(string(body)), &courseSectionData)
 	if err != nil {
 		fmt.Println(err)
-		return
+		return nil
 	}
 
 	section := courseSectionData["pageItems"].([]interface{})[0]
@@ -133,8 +146,8 @@ func pullCourseSectionData(reference string) {
 				workerUndefined := true
 				firstName := ""
 				lastName := ""
-				emailType := ""
-				emailAddress := ""
+				workEmail := ""
+				secondaryEmail := ""
 
 				for k := 0; k < len(worker); k++ {
 					if worker[k].(map[string]interface{})["nameType"] == "Preferred Name" {
@@ -151,18 +164,26 @@ func pullCourseSectionData(reference string) {
 				}
 
 				for k := 0; k < len(email); k++ {
-					emailType = email[k].(map[string]interface{})["channelType"].(map[string]interface{})["description"].(string)
-					emailAddress = email[k].(map[string]interface{})["emailAddress"].(string)
+					if email[k].(map[string]interface{})["channelType"].(map[string]interface{})["description"].(string) == "Work" {
+						workEmail = email[k].(map[string]interface{})["emailAddress"].(string)
+					} else {
+						secondaryEmail = email[k].(map[string]interface{})["emailAddress"].(string)
+					}
 				}
 
-				fmt.Println(firstName)
-				fmt.Println(lastName)
-				fmt.Println(emailType)
-				fmt.Println(emailAddress)
+				instructorData := instructor{
+					instructorFirstName:      firstName,
+					instructorLastName:       lastName,
+					instructorWorkEmail:      workEmail,
+					instructorSecondaryEmail: secondaryEmail,
+				}
+				instructorArray = append(instructorArray, instructorData)
 			}
 
 		}
 	}
+
+	return instructorArray
 }
 
 func getDeptCourses(dept string, selectedTerm string, year string) []course {
@@ -216,12 +237,29 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 
 		// filter out for courses in a specific term
 		if term == selectedTerm {
-			fmt.Println(dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string))
-			pullCourseSectionData(item["courseSectionId"].(string))
+			// fmt.Println(dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string))
+			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
+
+			instructorFirstName := ""
+			instructorLastName := ""
+			instructorWorkEmail := ""
+			instructorSecondaryEmail := ""
+
+			// If data on instructors exist
+			if len(instructorArray) > 0 {
+				instructorData := instructorArray[0]
+				instructorFirstName = instructorData.instructorFirstName
+				instructorLastName = instructorData.instructorLastName
+				instructorWorkEmail = instructorData.instructorWorkEmail
+				instructorSecondaryEmail = instructorData.instructorSecondaryEmail
+			}
 
 			courseInfo := course{
-				courseName: dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
-				// instructors: ,
+				courseName:               dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
+				instructorFirstName:      instructorFirstName,
+				instructorLastName:       instructorLastName,
+				instructorWorkEmail:      instructorWorkEmail,
+				instructorSecondaryEmail: instructorSecondaryEmail,
 			}
 
 			deptCourses = append(deptCourses, courseInfo)
@@ -268,22 +306,24 @@ func main() {
 
 	csvwriter := csv.NewWriter(csvFile)
 
-	testData := [][]string{
-		{"Course Code", "...", "..."},
-		{"...", "...", "..."},
-		{"...", "...", "..."},
-		{"...", "...", "..."},
-		{"...", "...", "...", "...", "..."},
+	csvData := [][]string{
+		{"Course Code", "Instructor First Name", "Instructor Last Name", "Work Email", "Secondary Email"},
 	}
 
-	// for _, dataRow := range allCoursesData {
-	// 	_ = csvwriter.Write(dataRow)
-	// 	// fmt.Println(dataRow)
-	// }
+	for _, row := range allCoursesData {
+		courseCSV := []string{
+			row.courseName,
+			row.instructorFirstName,
+			row.instructorLastName,
+			row.instructorWorkEmail,
+			row.instructorSecondaryEmail,
+		}
+		csvData = append(csvData, courseCSV)
+	}
 
-	for _, dataRow := range testData {
-		_ = csvwriter.Write(dataRow)
-		// fmt.Println(dataRow)
+	// Converts the rows we generated to a CSV datasheet
+	for _, row := range csvData {
+		_ = csvwriter.Write(row)
 	}
 
 	csvwriter.Flush()
