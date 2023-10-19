@@ -9,6 +9,8 @@ import (
 
 	"encoding/csv"
 
+	"strings"
+
 	"github.com/joho/godotenv"
 )
 
@@ -45,7 +47,7 @@ func pullTerms() []string {
 	ClientSecret := os.Getenv("ClientSecret")
 
 	client := &http.Client{}
-	URL := "https://stg.api.ubc.ca/academic/v4/academic-periods"
+	URL := os.Getenv("academicURL") + "academic-periods"
 	req, err := http.NewRequest("GET", URL, nil)
 
 	if err != nil {
@@ -76,7 +78,7 @@ func pullTerms() []string {
 	pageItems := academicTermData["pageItems"].([]interface{})
 
 	terms := make([]string, 0)
-	// fmt.Println(result["pageItems"])
+
 	for i := 0; i < len(pageItems); i++ {
 		item := pageItems[i].(map[string]interface{})
 		termName := item["academicPeriod"].(map[string]interface{})["academicPeriodName"]
@@ -99,7 +101,8 @@ func pullCourseSectionData(reference string) []instructor {
 	ClientSecret := os.Getenv("expClientSecret")
 
 	client := &http.Client{}
-	URL := "https://sat.api.ubc.ca/academic-exp/v2/course-section-details?courseSectionId=" + reference
+	URL := os.Getenv("academicEXPURL") + "course-section-details?courseSectionId=" + reference
+
 	// filter out for courses in a specific term
 
 	req, err := http.NewRequest("GET", URL, nil)
@@ -139,8 +142,8 @@ func pullCourseSectionData(reference string) []instructor {
 			identifiers := teachingAssignments[i].(map[string]interface{})["identifiers"].([]interface{})
 			// for each instructor
 			for j := 0; j < len(identifiers); j++ {
-				worker := identifiers[i].(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
-				email := identifiers[i].(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
+				worker := identifiers[j].(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
+				email := identifiers[j].(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
 
 				// get the worker's preferred name
 				workerUndefined := true
@@ -196,7 +199,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	ClientSecret := os.Getenv("expClientSecret")
 
 	client := &http.Client{}
-	URL := "https://sat.api.ubc.ca/academic-exp/v2/course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
+	URL := os.Getenv("academicEXPURL") + "course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
 
 	req, err := http.NewRequest("GET", URL, nil)
 
@@ -237,9 +240,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 
 		// filter out for courses in a specific term
 		if term == selectedTerm {
-			// fmt.Println(dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string))
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
-
 			instructorFirstName := ""
 			instructorLastName := ""
 			instructorWorkEmail := ""
@@ -288,15 +289,18 @@ func pullCourses(selectedTerm string) []course {
 func main() {
 	// make this return the terms
 	terms := pullTerms()
-	// fmt.Println(terms)
-	selectedTerm := terms[7]
+	fmt.Println("Please select the session number you would like to retrieve course information from:")
+	for option, term := range terms {
+		fmt.Println("[" + fmt.Sprint(option) + "] - " + term)
+	}
 
-	// pull course data
-	// selectedTerm := "2024-25 Winter Term 1 (UBC-V)" // Testing
-	allCoursesData := pullCourses(selectedTerm)
+	var sessionIndex int
+	fmt.Println("Session number: ")
+	fmt.Scan(&sessionIndex)
 
-	fmt.Println(allCoursesData)
-	// run function to convert course data to .csv
+	fmt.Println("Fetching for data on courses, please wait...")
+
+	selectedTerm := terms[sessionIndex]
 
 	csvFile, err := os.Create("courses.csv")
 
@@ -310,15 +314,29 @@ func main() {
 		{"Course Code", "Instructor First Name", "Instructor Last Name", "Work Email", "Secondary Email"},
 	}
 
-	for _, row := range allCoursesData {
-		courseCSV := []string{
-			row.courseName,
-			row.instructorFirstName,
-			row.instructorLastName,
-			row.instructorWorkEmail,
-			row.instructorSecondaryEmail,
+	selectedTerms := make([]string, 0)
+
+	// If selected term has no term specified, run function twice with both terms
+	if !(strings.Contains(selectedTerm, "Term")) {
+		selectedTerms = append(selectedTerms, strings.Replace(selectedTerm, "Session", "Term 1", 1))
+		selectedTerms = append(selectedTerms, strings.Replace(selectedTerm, "Session", "Term 2", 1))
+	} else {
+		selectedTerms = append(selectedTerms, selectedTerm)
+	}
+
+	for _, termSelected := range selectedTerms {
+		allCoursesData := pullCourses(termSelected)
+
+		for _, row := range allCoursesData {
+			courseCSV := []string{
+				row.courseName,
+				row.instructorFirstName,
+				row.instructorLastName,
+				row.instructorWorkEmail,
+				row.instructorSecondaryEmail,
+			}
+			csvData = append(csvData, courseCSV)
 		}
-		csvData = append(csvData, courseCSV)
 	}
 
 	// Converts the rows we generated to a CSV datasheet
@@ -328,4 +346,6 @@ func main() {
 
 	csvwriter.Flush()
 	csvFile.Close()
+
+	fmt.Println("Data on courses saved!")
 }
