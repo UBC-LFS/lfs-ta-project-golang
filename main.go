@@ -1,26 +1,18 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-
-	"encoding/csv"
-
 	"strings"
 
 	"github.com/joho/godotenv"
 )
 
-// When run without any options
-// 		Returns csv list of courses, instructor names, instructor emails
-// Script should have options to,
-// 		list available terms from API
-// 		supply a term to get assignment for that term
-// 		Supply a list of unique instructor names and email in csv format
-
+// Data on a course
 type course struct {
 	courseName               string
 	instructorFirstName      string
@@ -29,6 +21,7 @@ type course struct {
 	instructorSecondaryEmail string
 }
 
+// Contact info of an instructor
 type instructor struct {
 	instructorFirstName      string
 	instructorLastName       string
@@ -36,10 +29,10 @@ type instructor struct {
 	instructorSecondaryEmail string
 }
 
+// Returns a list of all school terms
 func pullTerms() []string {
 	err := godotenv.Load(".env")
 	if err != nil {
-		// Handle error, e.g., log it or exit the program
 		fmt.Println("Error loading .env file")
 	}
 
@@ -68,17 +61,18 @@ func pullTerms() []string {
 		fmt.Println(err)
 	}
 
-	// Converts data to an interface
+	// Converts data to an interface for extracting
 	var academicTermData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &academicTermData)
 	if err != nil {
 		fmt.Println(err)
-		return nil
 	}
 	pageItems := academicTermData["pageItems"].([]interface{})
 
+	// Initalizes a list of terms
 	terms := make([]string, 0)
 
+	// Adds terms to the list of terms
 	for i := 0; i < len(pageItems); i++ {
 		item := pageItems[i].(map[string]interface{})
 		termName := item["academicPeriod"].(map[string]interface{})["academicPeriodName"]
@@ -88,8 +82,9 @@ func pullTerms() []string {
 	return terms
 }
 
+// Pull instructor data on courses and returns the array
 func pullCourseSectionData(reference string) []instructor {
-
+	// Initalizes an array of instructors
 	instructorArray := make([]instructor, 0)
 
 	err := godotenv.Load(".env")
@@ -102,8 +97,6 @@ func pullCourseSectionData(reference string) []instructor {
 
 	client := &http.Client{}
 	URL := os.Getenv("academicEXPURL") + "course-section-details?courseSectionId=" + reference
-
-	// filter out for courses in a specific term
 
 	req, err := http.NewRequest("GET", URL, nil)
 
@@ -145,13 +138,14 @@ func pullCourseSectionData(reference string) []instructor {
 				worker := identifiers[j].(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
 				email := identifiers[j].(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
 
-				// get the worker's preferred name
+				// Initalizes variables
 				workerUndefined := true
 				firstName := ""
 				lastName := ""
 				workEmail := ""
 				secondaryEmail := ""
 
+				// Search for the instructor's preferred name
 				for k := 0; k < len(worker); k++ {
 					if worker[k].(map[string]interface{})["nameType"] == "Preferred Name" {
 						firstName = worker[k].(map[string]interface{})["givenName"].(string)
@@ -160,12 +154,13 @@ func pullCourseSectionData(reference string) []instructor {
 						break
 					}
 				}
-
+				// If no preferred name is set, use their given name
 				if workerUndefined {
 					firstName = worker[0].(map[string]interface{})["givenName"].(string)
 					lastName = worker[0].(map[string]interface{})["familyName"].(string)
 				}
 
+				// Iterates through the instructor's emails for a work and secondary email address
 				for k := 0; k < len(email); k++ {
 					if email[k].(map[string]interface{})["channelType"].(map[string]interface{})["description"].(string) == "Work" {
 						workEmail = email[k].(map[string]interface{})["emailAddress"].(string)
@@ -189,6 +184,7 @@ func pullCourseSectionData(reference string) []instructor {
 	return instructorArray
 }
 
+// retrieves a list of courses within the department specified
 func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	err := godotenv.Load(".env")
 	if err != nil {
@@ -221,7 +217,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 		fmt.Println(err)
 	}
 
-	// Converts data to an interface
+	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
 	if err != nil {
@@ -230,7 +226,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	}
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
-
+	// Initalizes a list of courses in the department
 	var deptCourses = make([]course, 0)
 
 	for i := 0; i < len(courseItems); i++ {
@@ -238,15 +234,17 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 		termDetails := item["academicPeriod"].(map[string]interface{})
 		term := termDetails["academicPeriodName"]
 
-		// filter out for courses in a specific term
+		// filter out for courses in the selected term
 		if term == selectedTerm {
+			// Retrieves a list of instructors from the course
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
+			// Initalizes variables
 			instructorFirstName := ""
 			instructorLastName := ""
 			instructorWorkEmail := ""
 			instructorSecondaryEmail := ""
 
-			// If data on instructors exist
+			// If data on instructors exist, store it
 			if len(instructorArray) > 0 {
 				instructorData := instructorArray[0]
 				instructorFirstName = instructorData.instructorFirstName
@@ -270,14 +268,19 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	return deptCourses
 }
 
+// Pull courses from each department
 func pullCourses(selectedTerm string) []course {
+	// Initalizes an array to store all the courses
 	var allCourses = make([]course, 0)
+
 	LFSDepts := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
-	// for loop of getDeptCourses
+
+	// For each department in the LFS, get their courses
 	year := string(selectedTerm[0:4])
 	for i := 0; i < len(LFSDepts); i++ {
 		deptCourses := getDeptCourses(LFSDepts[i], selectedTerm, year)
 
+		// for each course retrieved, add it to allCourses array
 		for k := 0; k < len(deptCourses); k++ {
 			allCourses = append(allCourses, deptCourses[k])
 		}
@@ -287,36 +290,45 @@ func pullCourses(selectedTerm string) []course {
 }
 
 func main() {
-	// make this return the terms
+	var sessionIndex int
+
+	// Pull all terms from the API
 	terms := pullTerms()
+
 	fmt.Println("Please select the session number you would like to retrieve course information from:")
+	// Display all options for terms
 	for option, term := range terms {
 		fmt.Println("[" + fmt.Sprint(option) + "] - " + term)
 	}
 
-	var sessionIndex int
-	fmt.Println("Session number: ")
-	fmt.Scan(&sessionIndex)
-
-	fmt.Println("Fetching for data on courses, please wait...")
+	for true {
+		fmt.Println("Session number: ")
+		fmt.Scan(&sessionIndex) // retrieves user's input
+		if 0 <= sessionIndex && sessionIndex <= len(terms)-1 {
+			fmt.Println("Fetching for data on courses, please wait...")
+			break
+		} else {
+			fmt.Println("This session does not exist, please try again.")
+		}
+	}
 
 	selectedTerm := terms[sessionIndex]
 
 	csvFile, err := os.Create("courses.csv")
 
 	if err != nil {
-		fmt.Println("Failed creating file: %s", err)
+		fmt.Printf("\nFailed creating file: %s \n", err)
 	}
 
 	csvwriter := csv.NewWriter(csvFile)
 
+	// Initalizes the CSV file headers
 	csvData := [][]string{
 		{"Course Code", "Instructor First Name", "Instructor Last Name", "Work Email", "Secondary Email"},
 	}
 
-	selectedTerms := make([]string, 0)
-
 	// If selected term has no term specified, run function twice with both terms
+	selectedTerms := make([]string, 0)
 	if !(strings.Contains(selectedTerm, "Term")) {
 		selectedTerms = append(selectedTerms, strings.Replace(selectedTerm, "Session", "Term 1", 1))
 		selectedTerms = append(selectedTerms, strings.Replace(selectedTerm, "Session", "Term 2", 1))
@@ -324,6 +336,7 @@ func main() {
 		selectedTerms = append(selectedTerms, selectedTerm)
 	}
 
+	// For each selected term, pull courses data
 	for _, termSelected := range selectedTerms {
 		allCoursesData := pullCourses(termSelected)
 
@@ -339,7 +352,7 @@ func main() {
 		}
 	}
 
-	// Converts the rows we generated to a CSV datasheet
+	// Converts the rows generated to a CSV datasheet
 	for _, row := range csvData {
 		_ = csvwriter.Write(row)
 	}
