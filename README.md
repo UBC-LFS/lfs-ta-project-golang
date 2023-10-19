@@ -1,9 +1,11 @@
 # LFS teaching assignment w/ Go
 
+The script compiles a CSV file containing course details, instructor names, and their email addresses. When a specific term or session is chosen, the script retrieves the courses and the corresponding instructors with their email addresses for that selected term or session.
+
 # Installation
 1. Install Go: [Download](https://go.dev/doc/install)
 ```
-
+...
 ```
 
 2. Create a .env file
