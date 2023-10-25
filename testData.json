@@ -1,0 +1,267 @@
+{
+    "page": 1,
+    "pageSize": 1,
+    "hasNextPage": false,
+    "pageItems": [
+        {
+            "id": "2715a600bec0bc3737e1672817ad36a2",
+            "courseSectionId": "COURSE_SECTION_DEFINITION-6-290291",
+            "sectionNumber": "001",
+            "startDate": "2023-05-16",
+            "endDate": "2023-08-11",
+            "privateNotes": "Allowed Grade Type is PCNT.Faculty is not allowed to change Grade Type.Not allowed to be taken as Credit/D/Fail.",
+            "lastUpdated": "2023-05-16T08:47:15",
+            "academicPeriod": {
+                "academicPeriodId": "ACADEMIC_PERIOD-3-197",
+                "academicPeriodName": "2023 Summer Session (UBC-O)",
+                "academicPeriodType": "Summer Session",
+                "academicYear": 2023,
+                "academicCalendar": "UBC-O Academic Calendar"
+            },
+            "description": "<p>A two-semester practice-based course that gives learners an extended opportunity to develop university-level writing skills. Advances communication abilities in rhetoric, critical analysis, grammar, and documentation, with emphasis on research-based writing and academic literacy. Essays and exercises are required. Credit will be granted for only one of ENGL 109, ENGL 112 or ENGL 114.</p>",
+            "sectionStatus": {
+                "code": "Preliminary",
+                "description": "Preliminary"
+            },
+            "isSpanOverSection": false,
+            "creditUnits": 6,
+            "abbreviatedTitle": "Studies in Composition (Enhanced)",
+            "courseComponent": {
+                "deliveryMode": {
+                    "code": "In-Person",
+                    "description": "In Person Learning"
+                },
+                "instructionalFormat": {
+                    "code": "Lecture",
+                    "description": "Lecture"
+                },
+                "isControlsGrading": true
+            },
+            "studentEligibilityRule": {
+                "customEligibilityRuleMeaning": "<p>Credit will be granted for only one of ENGL_O 109, ENGL_O 112 or ENGL_O 114.</p>"
+            },
+            "course": {
+                "courseNumber": "109",
+                "courseId": "COURSE_DEFINITION-3-8436",
+                "courseInstanceId": "COURSE_DEFINITION-3-8436_20200824",
+                "title": "Studies in Composition (Enhanced)",
+                "abbreviatedTitle": "Studies in Composition (Enhanced)",
+                "academicLevel": {
+                    "code": "Undergraduate",
+                    "description": "Level for an undergraduate study learning opportunity"
+                },
+                "courseSubject": {
+                    "code": "ENGL_O",
+                    "description": "English (Okanagan)"
+                },
+                "curriculumApprovingBody": {
+                    "code": "O",
+                    "description": "UBC Okanagan Senate"
+                },
+                "courseOwnerships": [
+                    {
+                        "academicUnitId": "ACADEMIC_UNIT-ECS",
+                        "academicUnitName": "Department of English and Cultural Studies",
+                        "department": {
+                            "academicUnitId": "ACADEMIC_UNIT-ECS",
+                            "academicUnitName": "Department of English and Cultural Studies"
+                        },
+                        "faculty": {
+                            "academicUnitId": "ACADEMIC_UNIT-CCS",
+                            "academicUnitName": "Faculty of Creative and Critical Studies"
+                        }
+                    }
+                ]
+            },
+            "teachingAssignments": [
+                {
+                    "assignableRole": {
+                        "code": "Instructor Grading",
+                        "description": "Instructor Grading"
+                    },
+                    "identifiers": [
+                        {
+                            "identifierType": "Employee_ID",
+                            "identifier": "3584666",
+                            "worker": {
+                                "isActive": true,
+                                "personNames": [
+                                    {
+                                        "nameType": "Legal Name",
+                                        "givenName": "Bridget",
+                                        "familyName": "Trainor"
+                                    },
+                                    {
+                                        "nameType": "Preferred Name",
+                                        "givenName": "Bridget",
+                                        "familyName": "Trainor"
+                                    }
+                                ],
+                                "communicationChannel": {
+                                    "emails": [
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Personal",
+                                                "description": "Home"
+                                            },
+                                            "emailAddress": "oxrklxwcox@xyz.com"
+                                        },
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Work",
+                                                "description": "Work"
+                                            },
+                                            "emailAddress": "btrain01@tst.mail.ubc.ca"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "assignableRole": {
+                        "code": "Instructor Teaching",
+                        "description": "Instructor Teaching"
+                    },
+                    "identifiers": [
+                        {
+                            "identifierType": "Employee_ID",
+                            "identifier": "3581012",
+                            "worker": {
+                                "isActive": true,
+                                "personNames": [
+                                    {
+                                        "nameType": "Legal Name",
+                                        "givenName": "Kevin",
+                                        "familyName": "Araujo"
+                                    },
+                                    {
+                                        "nameType": "Preferred Name",
+                                        "givenName": "Kevin",
+                                        "familyName": "Araujo"
+                                    }
+                                ],
+                                "communicationChannel": {
+                                    "emails": [
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Work",
+                                                "description": "Work"
+                                            },
+                                            "emailAddress": "andearau@tst.mail.ubc.ca"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "identifierType": "Employee_ID",
+                            "identifier": "3581012",
+                            "worker": {
+                                "isActive": true,
+                                "personNames": [
+                                    {
+                                        "nameType": "Legal Name",
+                                        "givenName": "Kevin",
+                                        "familyName": "Araujo"
+                                    },
+                                    {
+                                        "nameType": "Preferred Name",
+                                        "givenName": "Kevin",
+                                        "familyName": "Araujo"
+                                    }
+                                ],
+                                "communicationChannel": {
+                                    "emails": [
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Work",
+                                                "description": "Work"
+                                            },
+                                            "emailAddress": "andearau@tst.mail.ubc.ca"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "assignableRole": {
+                        "code": "TA Marking",
+                        "description": "TA Marking"
+                    },
+                    "identifiers": [
+                        {
+                            "identifierType": "Employee_ID",
+                            "identifier": "3508951",
+                            "worker": {
+                                "isActive": true,
+                                "personNames": [
+                                    {
+                                        "nameType": "Legal Name",
+                                        "givenName": "Eva",
+                                        "familyName": "Kasprzycka",
+                                        "middleName": "N."
+                                    },
+                                    {
+                                        "nameType": "Preferred Name",
+                                        "givenName": "Eva",
+                                        "familyName": "Kasprzycka",
+                                        "middleName": "N."
+                                    }
+                                ],
+                                "communicationChannel": {
+                                    "emails": [
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Personal",
+                                                "description": "Home"
+                                            },
+                                            "emailAddress": "qnvltgxodt@xyz.com"
+                                        },
+                                        {
+                                            "isPrimary": false,
+                                            "channelType": {
+                                                "code": "Personal",
+                                                "description": "Home"
+                                            },
+                                            "emailAddress": "xlzvirqmka@xyz.com"
+                                        },
+                                        {
+                                            "isPrimary": true,
+                                            "channelType": {
+                                                "code": "Work",
+                                                "description": "Work"
+                                            },
+                                            "emailAddress": "ek2882@tst.mail.ubc.ca"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                }
+            ],
+            "sectionCapacity": 50,
+            "reservedCapacity": 0,
+            "remainingUnreservedSeats": 50,
+            "remainingReservedSeats": 0,
+            "totalRegisteredCount": 0,
+            "reservedCapacityLines": [],
+            "isNotVisible": false,
+            "_metadata": {
+                "createdTime": "2023-05-13T20:12:23",
+                "changedTime": "2023-08-31T13:15:05",
+                "checkpoint": 189575653,
+                "eventAction": "CreateOrUpdate"
+            }
+        }
+    ]
+}

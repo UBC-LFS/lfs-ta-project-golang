@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +20,7 @@ type course struct {
 	instructorLastName       string
 	instructorWorkEmail      string
 	instructorSecondaryEmail string
+	instructorsArray         []instructor
 }
 
 // Contact info of an instructor
@@ -131,9 +133,6 @@ func pullCourseSectionData(reference string) []instructor {
 	// for each person teaching
 
 	for i := 0; i < len(teachingAssignments); i++ {
-		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] != "Instructor Teaching" {
-			fmt.Println(teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] != "Instructor Teaching")
-		}
 		// if person is instructor
 		// fmt.Println(teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"])
 		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" || teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "TA Marking" {
@@ -188,7 +187,7 @@ func pullCourseSectionData(reference string) []instructor {
 		}
 	}
 
-	// fmt.Println(instructorArray)
+	fmt.Println(instructorArray)
 	return instructorArray
 }
 
@@ -202,7 +201,8 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	ClientID := os.Getenv("expClientID")
 	ClientSecret := os.Getenv("expClientSecret")
 
-	client := &http.Client{}
+	// client := &http.Client{}
+
 	URL := os.Getenv("academicEXPURL") + "course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
 
 	req, err := http.NewRequest("GET", URL, nil)
@@ -214,36 +214,68 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	req.Header.Add("x-client-id", ClientID)
 	req.Header.Add("x-client-secret", ClientSecret)
 
-	resp, err := client.Do(req)
+	// resp, err := client.Do(req)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// body = result from api get request
+	// body, err := io.ReadAll(resp.Body)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// Replace data from API with...
+
+	// opens json file
+	jsonFile, err := os.Open("testData.json")
+
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	// body = result from api get request
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
+	value, _ := ioutil.ReadAll(jsonFile)
+	var result map[string]interface{}
+
+	json.Unmarshal([]byte(value), &result)
+
+	// opens json file ^^
+
+	// Replace data from API with... ^^^^
 
 	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
-	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
+	// err = json.Unmarshal([]byte(string(body)), &academicRecordData)
+	err = json.Unmarshal([]byte(string(value)), &academicRecordData) // replaces api data with json data - testing
+
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
+	// Get JSON file
+
+	//
+	//
+	//
+	//
+	//
+	//
+
+	// View JSON data and make it = courseItems
+
 	// Initalizes a list of courses in the department
 	var deptCourses = make([]course, 0)
 
 	for i := 0; i < len(courseItems); i++ {
 		item := courseItems[i].(map[string]interface{})
-		termDetails := item["academicPeriod"].(map[string]interface{})
-		term := termDetails["academicPeriodName"]
+		// termDetails := item["academicPeriod"].(map[string]interface{})
+		// term := termDetails["academicPeriodName"]
 
 		// filter out for courses in the selected term
-		if term == selectedTerm {
+		// if term == selectedTerm {
+		if true {
 			// Retrieves a list of instructors from the course
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
 			// Initalizes variables
@@ -267,6 +299,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 				instructorLastName:       instructorLastName,
 				instructorWorkEmail:      instructorWorkEmail,
 				instructorSecondaryEmail: instructorSecondaryEmail,
+				instructorsArray:         instructorArray,
 			}
 
 			deptCourses = append(deptCourses, courseInfo)
@@ -292,6 +325,8 @@ func pullCourses(selectedTerm string) []course {
 		for k := 0; k < len(deptCourses); k++ {
 			allCourses = append(allCourses, deptCourses[k])
 		}
+
+		break
 	}
 
 	return allCourses
@@ -347,19 +382,36 @@ func main() {
 	}
 
 	// For each selected term, pull courses data
+	var largestInstructorCount int = 0
 	for _, termSelected := range selectedTerms {
 		allCoursesData := pullCourses(termSelected)
 
 		for _, row := range allCoursesData {
 			courseCSV := []string{
 				row.courseName,
-				row.instructorFirstName,
-				row.instructorLastName,
-				row.instructorWorkEmail,
-				row.instructorSecondaryEmail,
 			}
+
+			// for each instructor, add it to the courseCSV array
+			for instructorCount, instructorData := range row.instructorsArray {
+				courseCSV = append(courseCSV, instructorData.instructorFirstName)
+				courseCSV = append(courseCSV, instructorData.instructorLastName)
+				courseCSV = append(courseCSV, instructorData.instructorWorkEmail)
+				courseCSV = append(courseCSV, instructorData.instructorSecondaryEmail)
+				// updates the largestInstructorCount
+				largestInstructorCount = max(largestInstructorCount, instructorCount)
+			}
+
 			csvData = append(csvData, courseCSV)
 		}
+	}
+
+	fmt.Println(largestInstructorCount)
+	fmt.Println(csvData[0])
+	for instructorCount := 0; instructorCount < largestInstructorCount; instructorCount++ {
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" First Name")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Last Name")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Work Email")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Secondary Email")
 	}
 
 	// Converts the rows generated to a CSV datasheet

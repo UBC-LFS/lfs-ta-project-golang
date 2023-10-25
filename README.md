@@ -11,7 +11,7 @@ academicURL = "https://stg.api.ubc.ca/academic/v4/"
 ClientID = ""
 ClientSecret = ""
 
-academicEXPURL = "https://sat.api.ubc.ca/academic-exp/v2/"
+academicEXPURL = "https://stg.api.ubc.ca/academic-exp/v2/"
 expClientID = ""
 expClientSecret = ""
 ```
