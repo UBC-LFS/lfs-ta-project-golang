@@ -12,13 +12,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Data on a course
+// Data on a course - contains course name and a list of instructors
 type course struct {
-	courseName               string
-	instructorFirstName      string
-	instructorLastName       string
-	instructorWorkEmail      string
-	instructorSecondaryEmail string
+	courseName       string
+	instructorsArray []instructor
 }
 
 // Contact info of an instructor
@@ -128,15 +125,11 @@ func pullCourseSectionData(reference string) []instructor {
 
 	section := courseSectionData["pageItems"].([]interface{})[0]
 	teachingAssignments := section.(map[string]interface{})["teachingAssignments"].([]interface{})
-	// for each person teaching
 
+	// for each person teaching
 	for i := 0; i < len(teachingAssignments); i++ {
-		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] != "Instructor Teaching" {
-			fmt.Println(teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] != "Instructor Teaching")
-		}
 		// if person is instructor
-		// fmt.Println(teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"])
-		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" || teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "TA Marking" {
+		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" {
 			identifiers := teachingAssignments[i].(map[string]interface{})["identifiers"].([]interface{})
 			// for each instructor
 			for j := 0; j < len(identifiers); j++ {
@@ -181,14 +174,12 @@ func pullCourseSectionData(reference string) []instructor {
 					instructorSecondaryEmail: secondaryEmail,
 				}
 
-				// fmt.Println(instructorData)
 				instructorArray = append(instructorArray, instructorData)
 			}
 
 		}
 	}
 
-	// fmt.Println(instructorArray)
 	return instructorArray
 }
 
@@ -203,6 +194,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	ClientSecret := os.Getenv("expClientSecret")
 
 	client := &http.Client{}
+
 	URL := os.Getenv("academicEXPURL") + "course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
 
 	req, err := http.NewRequest("GET", URL, nil)
@@ -228,12 +220,14 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
+
 	if err != nil {
 		fmt.Println(err)
 		return nil
 	}
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
+
 	// Initalizes a list of courses in the department
 	var deptCourses = make([]course, 0)
 
@@ -246,27 +240,10 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 		if term == selectedTerm {
 			// Retrieves a list of instructors from the course
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
-			// Initalizes variables
-			instructorFirstName := ""
-			instructorLastName := ""
-			instructorWorkEmail := ""
-			instructorSecondaryEmail := ""
-
-			// If data on instructors exist, store it
-			if len(instructorArray) > 0 {
-				instructorData := instructorArray[0]
-				instructorFirstName = instructorData.instructorFirstName
-				instructorLastName = instructorData.instructorLastName
-				instructorWorkEmail = instructorData.instructorWorkEmail
-				instructorSecondaryEmail = instructorData.instructorSecondaryEmail
-			}
 
 			courseInfo := course{
-				courseName:               dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
-				instructorFirstName:      instructorFirstName,
-				instructorLastName:       instructorLastName,
-				instructorWorkEmail:      instructorWorkEmail,
-				instructorSecondaryEmail: instructorSecondaryEmail,
+				courseName:       dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
+				instructorsArray: instructorArray,
 			}
 
 			deptCourses = append(deptCourses, courseInfo)
@@ -281,7 +258,7 @@ func pullCourses(selectedTerm string) []course {
 	// Initalizes an array to store all the courses
 	var allCourses = make([]course, 0)
 
-	LFSDepts := [14]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL", "CPSC", "PSYC", "MATH"}
+	LFSDepts := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
 
 	// For each department in the LFS, get their courses
 	year := string(selectedTerm[0:4])
@@ -302,8 +279,6 @@ func main() {
 
 	// Pull all terms from the API
 	terms := pullTerms()
-	terms = append(terms, "2022-23 Winter Session (UBC-V)")
-	terms = append(terms, "2023-24 Winter Session (UBC-V)")
 
 	fmt.Println("Please select the session number you would like to retrieve course information from:")
 	// Display all options for terms
@@ -311,6 +286,7 @@ func main() {
 		fmt.Println("[" + fmt.Sprint(option) + "] - " + term)
 	}
 
+	// Golang has no while loops, need to use "for"
 	for true {
 		fmt.Println("Session number: ")
 		fmt.Scan(&sessionIndex) // retrieves user's input
@@ -346,6 +322,8 @@ func main() {
 		selectedTerms = append(selectedTerms, selectedTerm)
 	}
 
+	var largestInstructorCount int = 0 // determines how many columns to add
+
 	// For each selected term, pull courses data
 	for _, termSelected := range selectedTerms {
 		allCoursesData := pullCourses(termSelected)
@@ -353,13 +331,28 @@ func main() {
 		for _, row := range allCoursesData {
 			courseCSV := []string{
 				row.courseName,
-				row.instructorFirstName,
-				row.instructorLastName,
-				row.instructorWorkEmail,
-				row.instructorSecondaryEmail,
 			}
+
+			// for each instructor in instructorsArray, add it to the courseCSV array for that specific course
+			for instructorCount, instructorData := range row.instructorsArray {
+				courseCSV = append(courseCSV, instructorData.instructorFirstName)
+				courseCSV = append(courseCSV, instructorData.instructorLastName)
+				courseCSV = append(courseCSV, instructorData.instructorWorkEmail)
+				courseCSV = append(courseCSV, instructorData.instructorSecondaryEmail)
+				// updates the largestInstructorCount
+				largestInstructorCount = max(largestInstructorCount, instructorCount)
+			}
+
 			csvData = append(csvData, courseCSV)
 		}
+	}
+
+	// For every number of instructors we have, implement a new column for that instructor
+	for instructorCount := 0; instructorCount < largestInstructorCount; instructorCount++ {
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" First Name")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Last Name")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Work Email")
+		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Secondary Email")
 	}
 
 	// Converts the rows generated to a CSV datasheet
