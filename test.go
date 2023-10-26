@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -15,12 +14,8 @@ import (
 
 // Data on a course
 type course struct {
-	courseName               string
-	instructorFirstName      string
-	instructorLastName       string
-	instructorWorkEmail      string
-	instructorSecondaryEmail string
-	instructorsArray         []instructor
+	courseName       string
+	instructorsArray []instructor
 }
 
 // Contact info of an instructor
@@ -134,8 +129,7 @@ func pullCourseSectionData(reference string) []instructor {
 
 	for i := 0; i < len(teachingAssignments); i++ {
 		// if person is instructor
-		// fmt.Println(teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"])
-		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" || teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "TA Marking" {
+		if teachingAssignments[i].(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" {
 			identifiers := teachingAssignments[i].(map[string]interface{})["identifiers"].([]interface{})
 			// for each instructor
 			for j := 0; j < len(identifiers); j++ {
@@ -180,14 +174,12 @@ func pullCourseSectionData(reference string) []instructor {
 					instructorSecondaryEmail: secondaryEmail,
 				}
 
-				// fmt.Println(instructorData)
 				instructorArray = append(instructorArray, instructorData)
 			}
 
 		}
 	}
 
-	fmt.Println(instructorArray)
 	return instructorArray
 }
 
@@ -201,7 +193,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	ClientID := os.Getenv("expClientID")
 	ClientSecret := os.Getenv("expClientSecret")
 
-	// client := &http.Client{}
+	client := &http.Client{}
 
 	URL := os.Getenv("academicEXPURL") + "course-section-details?academicYear=" + year + "&courseSubject=" + dept + "_V&page=1&pageSize=500"
 
@@ -214,39 +206,20 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	req.Header.Add("x-client-id", ClientID)
 	req.Header.Add("x-client-secret", ClientSecret)
 
-	// resp, err := client.Do(req)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// body = result from api get request
-	// body, err := io.ReadAll(resp.Body)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// Replace data from API with...
-
-	// opens json file
-	jsonFile, err := os.Open("testData.json")
-
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	value, _ := ioutil.ReadAll(jsonFile)
-	var result map[string]interface{}
-
-	json.Unmarshal([]byte(value), &result)
-
-	// opens json file ^^
-
-	// Replace data from API with... ^^^^
+	// body = result from api get request
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
-	// err = json.Unmarshal([]byte(string(body)), &academicRecordData)
-	err = json.Unmarshal([]byte(string(value)), &academicRecordData) // replaces api data with json data - testing
+	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
 
 	if err != nil {
 		fmt.Println(err)
@@ -254,52 +227,23 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 	}
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
-	// Get JSON file
-
-	//
-	//
-	//
-	//
-	//
-	//
-
-	// View JSON data and make it = courseItems
 
 	// Initalizes a list of courses in the department
 	var deptCourses = make([]course, 0)
 
 	for i := 0; i < len(courseItems); i++ {
 		item := courseItems[i].(map[string]interface{})
-		// termDetails := item["academicPeriod"].(map[string]interface{})
-		// term := termDetails["academicPeriodName"]
+		termDetails := item["academicPeriod"].(map[string]interface{})
+		term := termDetails["academicPeriodName"]
 
 		// filter out for courses in the selected term
-		// if term == selectedTerm {
-		if true {
+		if term == selectedTerm {
 			// Retrieves a list of instructors from the course
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
-			// Initalizes variables
-			instructorFirstName := ""
-			instructorLastName := ""
-			instructorWorkEmail := ""
-			instructorSecondaryEmail := ""
-
-			// If data on instructors exist, store it
-			if len(instructorArray) > 0 {
-				instructorData := instructorArray[0]
-				instructorFirstName = instructorData.instructorFirstName
-				instructorLastName = instructorData.instructorLastName
-				instructorWorkEmail = instructorData.instructorWorkEmail
-				instructorSecondaryEmail = instructorData.instructorSecondaryEmail
-			}
 
 			courseInfo := course{
-				courseName:               dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
-				instructorFirstName:      instructorFirstName,
-				instructorLastName:       instructorLastName,
-				instructorWorkEmail:      instructorWorkEmail,
-				instructorSecondaryEmail: instructorSecondaryEmail,
-				instructorsArray:         instructorArray,
+				courseName:       dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
+				instructorsArray: instructorArray,
 			}
 
 			deptCourses = append(deptCourses, courseInfo)
@@ -314,7 +258,7 @@ func pullCourses(selectedTerm string) []course {
 	// Initalizes an array to store all the courses
 	var allCourses = make([]course, 0)
 
-	LFSDepts := [14]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL", "CPSC", "PSYC", "MATH"}
+	LFSDepts := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
 
 	// For each department in the LFS, get their courses
 	year := string(selectedTerm[0:4])
@@ -325,8 +269,6 @@ func pullCourses(selectedTerm string) []course {
 		for k := 0; k < len(deptCourses); k++ {
 			allCourses = append(allCourses, deptCourses[k])
 		}
-
-		break
 	}
 
 	return allCourses
@@ -337,8 +279,6 @@ func main() {
 
 	// Pull all terms from the API
 	terms := pullTerms()
-	terms = append(terms, "2022-23 Winter Session (UBC-V)")
-	terms = append(terms, "2023-24 Winter Session (UBC-V)")
 
 	fmt.Println("Please select the session number you would like to retrieve course information from:")
 	// Display all options for terms
@@ -405,8 +345,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(largestInstructorCount)
-	fmt.Println(csvData[0])
 	for instructorCount := 0; instructorCount < largestInstructorCount; instructorCount++ {
 		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" First Name")
 		csvData[0] = append(csvData[0], "Instructor "+fmt.Sprint(instructorCount+2)+" Last Name")
