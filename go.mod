@@ -1,4 +1,4 @@
-module LFS-TA-PROJECT-GOLANG
+module teaching-assignment
 
 go 1.21.1
 

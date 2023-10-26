@@ -18,7 +18,14 @@ expClientSecret = ""
 
 # How to use
 
-1. Run the program using `go run main.go`
+1. Run the program using `go run main.go` OR build an executable
+```go
+ // to run the code
+go run main.go
+
+// to build an executable
+go build <`go.mod` module name> // e.g. go build teaching-assignment
+```
 2. The program will ask you to select the session number you want to retrieve course information from
 
 Example:
@@ -45,4 +52,6 @@ Note: Selecting `2024-25 Winter Session (UBC-V)` will get you data for both term
 
 # Developer Notes
 
-The API being used is incomplete. Only the 1st instructor is being added to the CSV file since no data retrieved from the API includes 2 or more instructors, so this could not be implemented & tested.
+The API being used is incomplete. No data retrieved from the API includes 2 or more instructors, code has been implemented to add multiple instructors to the CSV file, but this feature has not been tested. 
+- This has been tested for TA's. E.g. If we want TA's instead of instructors, it will add multiple TA's to the CSV file. 
+- This is tested in the branch `multiple-instructors` in `test.go` where we added place holder data into `testData.json`
