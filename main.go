@@ -304,7 +304,7 @@ func main() {
 
 	selectedTerm := terms[sessionIndex]
 
-	csvFile, err := os.Create("courses.csv")
+	csvFile, err := os.Create(dir + "/courses.csv")
 
 	if err != nil {
 		fmt.Printf("\nFailed creating file: %s \n", err)
