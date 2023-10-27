@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -28,10 +30,6 @@ type instructor struct {
 
 // Returns a list of all school terms
 func pullTerms() []string {
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
 
 	ClientID := os.Getenv("ClientID")
 	ClientSecret := os.Getenv("ClientSecret")
@@ -83,11 +81,6 @@ func pullTerms() []string {
 func pullCourseSectionData(reference string) []instructor {
 	// Initalizes an array of instructors
 	instructorArray := make([]instructor, 0)
-
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
 
 	ClientID := os.Getenv("expClientID")
 	ClientSecret := os.Getenv("expClientSecret")
@@ -185,10 +178,6 @@ func pullCourseSectionData(reference string) []instructor {
 
 // retrieves a list of courses within the department specified
 func getDeptCourses(dept string, selectedTerm string, year string) []course {
-	err := godotenv.Load(".env")
-	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
 
 	ClientID := os.Getenv("expClientID")
 	ClientSecret := os.Getenv("expClientSecret")
@@ -276,6 +265,21 @@ func pullCourses(selectedTerm string) []course {
 
 func main() {
 	var sessionIndex int
+
+	// retrieves the absolute path of this repo so we can use it to get the .env file when building an executable
+	_, filename, _, working := runtime.Caller(0)
+	// if could not retrieve the path of the file, error
+	if !working {
+		fmt.Println("Could not find the path of this file")
+		os.Exit(1)
+	}
+
+	dir := filepath.Dir(filename)
+
+	err := godotenv.Load(dir + "/.env")
+	if err != nil {
+		fmt.Println("Error loading ./.env file")
+	}
 
 	// Pull all terms from the API
 	terms := pullTerms()
