@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 
 // Data on a course - contains course name and a list of instructors
 type course struct {
+	termName         string
 	courseName       string
 	instructorsArray []instructor
 }
@@ -28,6 +30,16 @@ type instructor struct {
 	instructorSecondaryEmail string
 }
 
+func checkErr(err error, customMessage string) {
+	if err != nil {
+		if len(customMessage) > 0 {
+			fmt.Println(customMessage)
+		} else {
+			fmt.Println(err)
+		}
+	}
+}
+
 // Returns a list of all school terms
 func pullTerms() []string {
 
@@ -38,30 +50,23 @@ func pullTerms() []string {
 	URL := os.Getenv("academicURL") + "academic-periods"
 	req, err := http.NewRequest("GET", URL, nil)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Error retrieving terms")
 
 	req.Header.Add("x-client-id", ClientID)
 	req.Header.Add("x-client-secret", ClientSecret)
 
 	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Error retrieving terms")
 
 	// body = result from api get request
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to read result from API")
 
 	// Converts data to an interface for extracting
 	var academicTermData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &academicTermData)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Cannot convert data to JSON")
+
 	pageItems := academicTermData["pageItems"].([]interface{})
 
 	// Initalizes a list of terms
@@ -90,31 +95,22 @@ func pullCourseSectionData(reference string) []instructor {
 
 	req, err := http.NewRequest("GET", URL, nil)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to pull course data from API")
 
 	req.Header.Add("x-client-id", ClientID)
 	req.Header.Add("x-client-secret", ClientSecret)
 
 	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to pull course data from API")
 
 	// body = result from api get request
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to read result from API")
 
 	// Converts data to an interface
 	var courseSectionData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &courseSectionData)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+	checkErr(err, "Cannot convert data to JSON")
 
 	section := courseSectionData["pageItems"].([]interface{})[0]
 	teachingAssignments := section.(map[string]interface{})["teachingAssignments"].([]interface{})
@@ -188,32 +184,23 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 
 	req, err := http.NewRequest("GET", URL, nil)
 
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to get courses from department")
 
 	req.Header.Add("x-client-id", ClientID)
 	req.Header.Add("x-client-secret", ClientSecret)
 
 	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to get courses from department")
 
 	// body = result from api get request
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
+	checkErr(err, "Unable to read result from API")
 
 	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
 	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
 
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+	checkErr(err, "Cannot convert data to JSON")
 
 	courseItems := academicRecordData["pageItems"].([]interface{})
 
@@ -230,7 +217,10 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 			// Retrieves a list of instructors from the course
 			instructorArray := pullCourseSectionData(item["courseSectionId"].(string))
 
+			r, _ := regexp.Compile("Term (1|2)")
+
 			courseInfo := course{
+				termName:         r.FindString(selectedTerm),
 				courseName:       dept + " " + item["course"].(map[string]interface{})["courseNumber"].(string) + " " + item["sectionNumber"].(string),
 				instructorsArray: instructorArray,
 			}
@@ -277,9 +267,8 @@ func main() {
 	dir := filepath.Dir(filename)
 
 	err := godotenv.Load(dir + "/.env")
-	if err != nil {
-		fmt.Println("Error loading ./.env file")
-	}
+
+	checkErr(err, "Error loading ./.env file")
 
 	// Pull all terms from the API
 	terms := pullTerms()
@@ -308,15 +297,13 @@ func main() {
 
 	csvFile, err := os.Create(dir + csvFileName)
 
-	if err != nil {
-		fmt.Printf("\nFailed creating file: %s \n", err)
-	}
+	checkErr(err, "\nFailed creating file")
 
 	csvwriter := csv.NewWriter(csvFile)
 
 	// Initalizes the CSV file headers
 	csvData := [][]string{
-		{"Course Code", "Instructor First Name", "Instructor Last Name", "Work Email", "Secondary Email"},
+		{"Term", "Course Code", "Instructor First Name", "Instructor Last Name", "Work Email", "Secondary Email"},
 	}
 
 	// If selected term has no term specified, run function twice with both terms
@@ -336,6 +323,7 @@ func main() {
 
 		for _, row := range allCoursesData {
 			courseCSV := []string{
+				row.termName,
 				row.courseName,
 			}
 
