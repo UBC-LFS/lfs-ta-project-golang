@@ -10,7 +10,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -40,6 +42,14 @@ func checkErr(err error, customMessage string) {
 	}
 }
 
+func withinRange(term string) bool {
+	currentYear := time.Now().Year()
+	termYear, err := strconv.Atoi(term[0:4])
+	checkErr(err, "Failed to parse int")
+
+	return currentYear+1 > termYear && termYear > currentYear-5
+}
+
 // Returns a list of all school terms
 func pullTerms() []string {
 
@@ -47,7 +57,7 @@ func pullTerms() []string {
 	ClientSecret := os.Getenv("ClientSecret")
 
 	client := &http.Client{}
-	URL := os.Getenv("academicURL") + "academic-periods"
+	URL := os.Getenv("academicURL") + "academic-periods?pageSize=500"
 	req, err := http.NewRequest("GET", URL, nil)
 
 	checkErr(err, "Error retrieving terms")
@@ -76,7 +86,9 @@ func pullTerms() []string {
 	for i := 0; i < len(pageItems); i++ {
 		item := pageItems[i].(map[string]interface{})
 		termName := item["academicPeriod"].(map[string]interface{})["academicPeriodName"]
-		terms = append(terms, termName.(string))
+		if strings.Contains(termName.(string), "UBC-V") && withinRange(termName.(string)) {
+			terms = append(terms, termName.(string))
+		}
 	}
 
 	return terms
@@ -198,6 +210,7 @@ func getDeptCourses(dept string, selectedTerm string, year string) []course {
 
 	// Converts data to an interface so we can extract it
 	var academicRecordData map[string]interface{}
+
 	err = json.Unmarshal([]byte(string(body)), &academicRecordData)
 
 	checkErr(err, "Cannot convert data to JSON")
