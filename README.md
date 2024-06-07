@@ -26,32 +26,11 @@ go run main.go
 // to build an executable
 go build <`go.mod` module name> // e.g. go build teaching-assignment
 ```
-2. The program will ask you to select the session number you want to retrieve course information from
+2. The program will ask you to enter a **year**
 
 Example:
 ```
-Please select the session number you would like to retrieve course information from:
-[0] - 2025-26 Winter Session (UBC-V)
-[1] - 2024-25 Winter Session (UBC-V)
-[2] - 2029-30 Winter Session (UBC-O)
-[3] - 2024-25 Winter Term 2 (UBC-V)
-[4] - 2026-27  Winter Term 2 (UBC-O)
-[5] - 2025-26 Winter Term 2 (UBC-V)
-[6] - 2027-28  Winter Term 2 (UBC-O)
-[7] - 2024-25 Winter Term 1 (UBC-V)
-[8] - 2031 Summer Session (UBC-O)
-[9] - 2025-26 Winter Term 2 (UBC-O)
-Session number:
+Enter a year [1996, 2032]: 2023
 ```
-3. If you want to select `2024-25 Winter Term 1 (UBC-V)`, you would enter `7`
 
-Note: Selecting `2024-25 Winter Session (UBC-V)` will get you data for both term 1 and term 2
-
-4. Wait for the script to fetch data for you
-5. Open `courses.csv` to view your data!
-
-# Developer Notes
-
-The API being used is incomplete. No data retrieved from the API includes 2 or more instructors, code has been implemented to add multiple instructors to the CSV file, but this feature has not been tested. 
-- This has been tested for TA's. E.g. If we want TA's instead of instructors, it will add multiple TA's to the CSV file. 
-- This is tested in the branch `multiple-instructors` in `test.go` where we added place holder data into `testData.json`
+3. Open **courses.csv** to view your data
