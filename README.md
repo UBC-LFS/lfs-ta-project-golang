@@ -7,11 +7,11 @@ The script compiles a CSV file containing course details, instructor names, and 
 
 2. Create a .env file
 ```
-academicURL = "https://stg.api.ubc.ca/academic/v4/"
+academicURL = ""
 ClientID = ""
 ClientSecret = ""
 
-academicEXPURL = "https://stg.api.ubc.ca/academic-exp/v2/"
+academicEXPURL = ""
 expClientID = ""
 expClientSecret = ""
 ```
