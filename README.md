@@ -7,13 +7,10 @@ The script compiles a CSV file containing course details, instructor names, and 
 
 2. Create a .env file
 ```
-academicURL = ""
-ClientID = ""
-ClientSecret = ""
-
-academicEXPURL = ""
-expClientID = ""
-expClientSecret = ""
+academicURL=""
+academicEXPURL=""
+ClientID=""
+ClientSecret=""
 ```
 
 # How to use

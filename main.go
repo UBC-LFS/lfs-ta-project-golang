@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -74,7 +75,6 @@ func getData(url string, path string, params string) []map[string]interface{} {
 
 func getTerms() (map[string][]string, int, int) {
 	pageItems := getData("academicURL", "academic-periods", "")
-
 	minYear := 9999
 	maxYear := 0
 	items := make(map[string][]string)
@@ -103,12 +103,12 @@ func getTerms() (map[string][]string, int, int) {
 func getCourses(year string) map[string][]map[string]interface{} {
 	fmt.Println("\nStarted fetching all the courses through APIs.")
 
-	subjects := [10]string{"APBI", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
+	subjects := [13]string{"AGEC", "AANB", "APBI", "AQUA", "FNH", "FOOD", "FRE", "GRS", "HUNU", "LFS", "LWS", "PLNT", "SOIL"}
 
 	items := make(map[string][]map[string]interface{})
 	for _, subject := range subjects {
-		fmt.Printf("Reading %s =====>\n", subject)
 		pageItems := getData("academicEXPURL", "course-section-details", "&academicYear="+year+"&courseSubject="+subject+"_V")
+		fmt.Printf("Read %s =====> %d pageItems\n", subject, len(pageItems))
 
 		for _, item := range pageItems {
 			id := item["academicPeriod"].(map[string]interface{})["academicPeriodId"].(string)
@@ -119,52 +119,67 @@ func getCourses(year string) map[string][]map[string]interface{} {
 	return items
 }
 
-func getCourseInfo(items []map[string]interface{}) []Course {
+func getCourseInfo(items []map[string]interface{}) ([]Course, []Course) {
+	VALID_TYPES := []string{"Lecture", "Research"}
+	EXCEPTIONS := []string{"FNH_V 326", "FNH_V 426"}
+
 	courses := make([]Course, 0)
+	term2Courses := make([]Course, 0)
 
 	for _, item := range items {
-		// TODO: course section number is missing
-		courseNumber := item["course"].(map[string]interface{})["courseNumber"].(string)
 		courseSubject := item["course"].(map[string]interface{})["courseSubject"].(map[string]interface{})["code"].(string)
+		courseNumber := item["course"].(map[string]interface{})["courseNumber"].(string)
+		sectionNumber := item["sectionNumber"].(string)
+		tempCourse := courseSubject + " " + courseNumber
+		startDate := item["startDate"].(string)
+		endDate := item["endDate"].(string)
 
-		tas := item["teachingAssignments"].([]interface{})
-		if len(tas) > 0 {
-			for _, ta := range tas {
-				if ta.(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" {
-					identifiers := ta.(map[string]interface{})["identifiers"].([]interface{})
+		if slices.Contains(VALID_TYPES, item["courseComponent"].(map[string]interface{})["instructionalFormat"].(map[string]interface{})["code"].(string)) || slices.Contains(EXCEPTIONS, tempCourse) {
+			tas := item["teachingAssignments"].([]interface{})
+			if len(tas) > 0 {
+				for _, ta := range tas {
+					if ta.(map[string]interface{})["assignableRole"].(map[string]interface{})["code"] == "Instructor Teaching" {
+						identifiers := ta.(map[string]interface{})["identifiers"].([]interface{})
 
-					firstName := ""
-					lastName := ""
-					workEmail := ""
-					personalEmail := ""
-					for _, identifier := range identifiers {
-						_, ok := identifier.(map[string]interface{})["worker"]
-						if ok {
-							personNames := identifier.(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
-							emails := identifier.(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
+						firstName := ""
+						lastName := ""
+						workEmail := ""
+						personalEmail := ""
+						for _, identifier := range identifiers {
+							_, ok := identifier.(map[string]interface{})["worker"]
+							if ok {
+								personNames := identifier.(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
+								emails := identifier.(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
 
-							if len(personNames) > 0 {
-								firstName = personNames[0].(map[string]interface{})["givenName"].(string)
-								lastName = personNames[0].(map[string]interface{})["familyName"].(string)
-							}
-
-							for _, email := range emails {
-								if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Work" {
-									workEmail = email.(map[string]interface{})["emailAddress"].(string)
+								if len(personNames) > 0 {
+									firstName = personNames[0].(map[string]interface{})["givenName"].(string)
+									lastName = personNames[0].(map[string]interface{})["familyName"].(string)
 								}
-								if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Personal" {
-									personalEmail = email.(map[string]interface{})["emailAddress"].(string)
+
+								for _, email := range emails {
+									if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Work" {
+										workEmail = email.(map[string]interface{})["emailAddress"].(string)
+									}
+									if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Personal" {
+										personalEmail = email.(map[string]interface{})["emailAddress"].(string)
+									}
+								}
+
+								c := Course{
+									// code:          strings.Replace(courseSubject, "_V", "", -1) + " " + courseNumber + " " + sectionNumber,
+									code:          courseSubject + " " + courseNumber + " " + sectionNumber,
+									firstName:     firstName,
+									lastName:      lastName,
+									workEmail:     workEmail,
+									personalEmail: personalEmail,
+								}
+
+								courses = append(courses, c)
+
+								if startDate[0:4] != endDate[0:4] {
+									term2Courses = append(term2Courses, c)
 								}
 							}
-
-							c := Course{
-								code:          strings.Replace(courseSubject, "_V", "", -1) + " " + courseNumber,
-								firstName:     firstName,
-								lastName:      lastName,
-								workEmail:     workEmail,
-								personalEmail: personalEmail,
-							}
-							courses = append(courses, c)
 						}
 					}
 				}
@@ -172,10 +187,14 @@ func getCourseInfo(items []map[string]interface{}) []Course {
 		}
 	}
 
-	return courses
+	return courses, term2Courses
 }
 
 func saveCSV(dir string, term string, courses []Course) {
+	sort.Slice(courses, func(i, j int) bool {
+		return courses[i].code < courses[j].code
+	})
+
 	fileName := "/output/" + term + " - Courses.csv"
 	file, err := os.Create(dir + fileName)
 	checkError(err, "\nFailed creating file")
@@ -234,12 +253,20 @@ func main() {
 				items, ok := courses[term_sp[0]]
 				if ok {
 					fmt.Printf("\nGet started writing for %s.\n", term_sp[1])
-					courseInfo := getCourseInfo(items)
-					saveCSV(dir, term_sp[1], courseInfo)
+					courseInfo, term2CourseInfo := getCourseInfo(items)
+					if len(courseInfo) > 0 {
+						saveCSV(dir, term_sp[1], courseInfo)
+					} else {
+						fmt.Printf("\nThere are no courses in this term - %s.\n", term_sp[1])
+					}
+					if len(term2CourseInfo) > 0 {
+						fmt.Printf("\nThere are %d Term 1+2 courses in this term - %s.\n", len(term2CourseInfo), term_sp[1])
+						temp := strings.Split(term_sp[1], " ")
+						saveCSV(dir, temp[0]+" "+temp[1]+" Term 1+2 (UBC-V)", term2CourseInfo)
+					}
 				} else {
 					fmt.Printf("\nThis term - %s - does not exist in the Academic-exp courses.\n", term_sp[1])
 				}
-
 			}
 
 		} else {
@@ -248,5 +275,4 @@ func main() {
 	} else {
 		fmt.Println("No academic terms found.")
 	}
-
 }
