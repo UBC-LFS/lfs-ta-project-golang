@@ -131,8 +131,8 @@ func getCourseInfo(items []map[string]interface{}) ([]Course, []Course) {
 		courseNumber := item["course"].(map[string]interface{})["courseNumber"].(string)
 		sectionNumber := item["sectionNumber"].(string)
 		tempCourse := courseSubject + " " + courseNumber
-		startDate := item["startDate"].(string)
-		endDate := item["endDate"].(string)
+		// startDate := item["startDate"].(string)
+		// endDate := item["endDate"].(string)
 
 		if slices.Contains(VALID_TYPES, item["courseComponent"].(map[string]interface{})["instructionalFormat"].(map[string]interface{})["code"].(string)) || slices.Contains(EXCEPTIONS, tempCourse) {
 			tas := item["teachingAssignments"].([]interface{})
@@ -149,19 +149,21 @@ func getCourseInfo(items []map[string]interface{}) ([]Course, []Course) {
 							_, ok := identifier.(map[string]interface{})["worker"]
 							if ok {
 								personNames := identifier.(map[string]interface{})["worker"].(map[string]interface{})["personNames"].([]interface{})
-								emails := identifier.(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
-
 								if len(personNames) > 0 {
 									firstName = personNames[0].(map[string]interface{})["givenName"].(string)
 									lastName = personNames[0].(map[string]interface{})["familyName"].(string)
 								}
 
-								for _, email := range emails {
-									if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Work" {
-										workEmail = email.(map[string]interface{})["emailAddress"].(string)
-									}
-									if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Personal" {
-										personalEmail = email.(map[string]interface{})["emailAddress"].(string)
+								_, comm := identifier.(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"]
+								if comm {
+									emails := identifier.(map[string]interface{})["worker"].(map[string]interface{})["communicationChannel"].(map[string]interface{})["emails"].([]interface{})
+									for _, email := range emails {
+										if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Work" {
+											workEmail = email.(map[string]interface{})["emailAddress"].(string)
+										}
+										if email.(map[string]interface{})["channelType"].(map[string]interface{})["code"].(string) == "Personal" {
+											personalEmail = email.(map[string]interface{})["emailAddress"].(string)
+										}
 									}
 								}
 
@@ -176,9 +178,9 @@ func getCourseInfo(items []map[string]interface{}) ([]Course, []Course) {
 
 								courses = append(courses, c)
 
-								if startDate[0:4] != endDate[0:4] {
-									term2Courses = append(term2Courses, c)
-								}
+								// if startDate[0:4] != endDate[0:4] {
+								// 	term2Courses = append(term2Courses, c)
+								// }
 							}
 						}
 					}
